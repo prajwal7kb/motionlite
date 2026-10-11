@@ -1,0 +1,32 @@
+﻿# Dependencies
+node_modules/
+
+# Build output
+dist/
+src-tauri/target/
+
+# Tauri sidecar binaries (keep the folder, ignore executables)
+src-tauri/binaries/*
+!src-tauri/binaries/.gitkeep
+
+# MotionLite project files
+*.mlite
+
+# Export output
+*.mp4
+*.webm
+*.gif
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Env files
+.env
+.env.local
