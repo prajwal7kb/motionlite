@@ -1,4 +1,7 @@
-﻿# MotionLite
+<img width="512" height="512" alt="icon" src="https://github.com/user-attachments/assets/e9a2738c-e0f3-4ab8-9d9c-035886971c9e" />
+
+ 
+ # MotionLite
 
 A lightweight, personal 2D motion-graphics editor for Windows 11. Built with Tauri 2, React 18, TypeScript, and Canvas2D.
 
