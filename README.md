@@ -1,4 +1,7 @@
-<img width="512" height="512" alt="icon" src="https://github.com/user-attachments/assets/e9a2738c-e0f3-4ab8-9d9c-035886971c9e" />
+<p align="center">
+  <img width="512" height="512" alt="icon" src="https://github.com/user-attachments/assets/e9a2738c-e0f3-4ab8-9d9c-035886971c9e" />
+</p>
+
 
  
  # MotionLite
