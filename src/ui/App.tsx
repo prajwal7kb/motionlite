@@ -26,10 +26,6 @@ const TOOLS: { mode: ToolMode; label: string; title: string }[] = [
   { mode: 'line',    label: '╱', title: 'Line' },
 ];
 
-/**
- * Contextual top bar for shape properties. Appears under the main topbar
- * whenever a shape or solid layer is selected.
- */
 function ShapeContextBar({ layer }: { layer: Layer }) {
   const shape = layer.shape;
   if (!shape) return null;
@@ -38,7 +34,6 @@ function ShapeContextBar({ layer }: { layer: Layer }) {
       if (l.shape) fn(l.shape);
     });
   };
-
   const isLine = shape.kind === 'line';
 
   return (
@@ -48,95 +43,72 @@ function ShapeContextBar({ layer }: { layer: Layer }) {
       {!isLine && (
         <div className="ctx-item">
           <label>Fill</label>
-          <input
-            type="checkbox"
-            checked={shape.fillOn}
-            onChange={e => upd(s => { s.fillOn = e.target.checked; })}
-          />
-          <input
-            type="color"
-            value={shape.fill}
-            onChange={e => upd(s => { s.fill = e.target.value; })}
-          />
+          <input type="checkbox" checked={shape.fillOn}
+            onChange={e => upd(s => { s.fillOn = e.target.checked; })} />
+          <input type="color" value={shape.fill}
+            onChange={e => upd(s => { s.fill = e.target.value; })} />
         </div>
       )}
 
       <div className="ctx-item">
         <label>Stroke</label>
-        <input
-          type="checkbox"
-          checked={shape.strokeOn}
-          onChange={e => upd(s => { s.strokeOn = e.target.checked; })}
-        />
-        <input
-          type="color"
-          value={shape.stroke}
-          onChange={e => upd(s => { s.stroke = e.target.value; })}
-        />
-        <NumberField
-          value={shape.strokeWidth}
-          min={0}
+        <input type="checkbox" checked={shape.strokeOn}
+          onChange={e => upd(s => { s.strokeOn = e.target.checked; })} />
+        <input type="color" value={shape.stroke}
+          onChange={e => upd(s => { s.stroke = e.target.value; })} />
+        <NumberField value={shape.strokeWidth} min={0}
+          scrubPerPixel={0.1}
           onChange={v => upd(s => { s.strokeWidth = v; })}
-          style={{ width: 52 }}
-        />
+          style={{ width: 52 }} />
       </div>
 
       <div className="ctx-divider" />
 
       <div className="ctx-item">
         <label>W</label>
-        <NumberField
-          value={shape.w}
+        <NumberField value={shape.w}
+          scrubPerPixel={0.5}
           onChange={v => upd(s => { s.w = v; })}
-          style={{ width: 62 }}
-        />
+          style={{ width: 62 }} />
       </div>
 
       {!isLine && (
         <div className="ctx-item">
           <label>H</label>
-          <NumberField
-            value={shape.h}
+          <NumberField value={shape.h}
+            scrubPerPixel={0.5}
             onChange={v => upd(s => { s.h = v; })}
-            style={{ width: 62 }}
-          />
+            style={{ width: 62 }} />
         </div>
       )}
 
       {(shape.kind === 'polygon' || shape.kind === 'star') && (
         <div className="ctx-item">
           <label>Sides</label>
-          <NumberField
-            value={shape.sides}
-            min={3}
-            max={24}
+          <NumberField value={shape.sides} min={3} max={24}
+            scrubPerPixel={0.05}
             onChange={v => upd(s => { s.sides = Math.round(v); })}
-            style={{ width: 44 }}
-          />
+            style={{ width: 44 }} />
         </div>
       )}
 
       {shape.kind === 'rect' && (
         <div className="ctx-item">
           <label>Radius</label>
-          <NumberField
-            value={shape.radius}
+          <NumberField value={shape.radius}
+            scrubPerPixel={0.3}
             onChange={v => upd(s => { s.radius = v; })}
-            style={{ width: 62 }}
-          />
+            style={{ width: 62 }} />
         </div>
       )}
 
       {shape.kind === 'star' && (
         <div className="ctx-item">
           <label>Inner %</label>
-          <NumberField
-            value={shape.radius}
-            min={5}
-            max={95}
+          <NumberField value={shape.radius} min={5} max={95}
+            scrubPerPixel={0.2}
             onChange={v => upd(s => { s.radius = v; })}
-            style={{ width: 52 }}
-          />
+            style={{ width: 52 }} />
         </div>
       )}
     </div>
@@ -151,40 +123,98 @@ export default function App() {
   const [settings, setSettings] = useState<ExportSettings>(DEFAULT_SETTINGS);
 
   const selectedLayer = project.layers.find(l => l.id === selectedLayerId);
-  const showShapeBar = !!(selectedLayer && (selectedLayer.type === 'shape' || selectedLayer.type === 'solid') && selectedLayer.shape);
+  const showShapeBar = !!(
+    selectedLayer &&
+    (selectedLayer.type === 'shape' || selectedLayer.type === 'solid') &&
+    selectedLayer.shape
+  );
+
+  // Blur any focused input when clicking outside one. This ensures keyboard
+  // shortcuts (Ctrl+A, Escape, etc.) reach the global handler instead of
+  // being swallowed by an input's default behavior.
+  useEffect(() => {
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const insideInput = target.closest('input, textarea, select');
+      if (!insideInput) {
+        const ae = document.activeElement as HTMLElement | null;
+        if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) {
+          ae.blur();
+        }
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown, true);
+    return () => document.removeEventListener('mousedown', onMouseDown, true);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const typing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+      // Use document.activeElement — more reliable than e.target in a WebView.
+      const ae = document.activeElement as HTMLElement | null;
+      const typing = !!ae && (
+        ae.tagName === 'INPUT' ||
+        ae.tagName === 'TEXTAREA' ||
+        ae.isContentEditable
+      );
       const mod = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
 
-      if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
-      if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
-      if (mod && e.key.toLowerCase() === 's') {
+      if (mod && key === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+      if (mod && key === 'y') { e.preventDefault(); redo(); return; }
+
+      if (mod && key === 's') {
         e.preventDefault();
         const blob = new Blob([serialize(project)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = project.name + '.mlite';
         a.click();
+        return;
       }
+
+      // Ctrl+A — select all layers (only when not typing in an input)
+      if (mod && !e.shiftKey && key === 'a' && !typing) {
+        e.preventDefault();
+        const s = useEditor.getState();
+        const all = s.project.layers.map(l => l.id);
+        useEditor.setState({
+          selectedLayerIds: all,
+          selectedLayerId: all[0] ?? null,
+        });
+        return;
+      }
+
+      // Ctrl+Shift+A — deselect all
+      if (mod && e.shiftKey && key === 'a' && !typing) {
+        e.preventDefault();
+        useEditor.getState().clearSelection();
+        return;
+      }
+
       if (e.key === ' ' && !typing) {
         e.preventDefault();
         useEditor.getState().setPlaying(!useEditor.getState().playing);
+        return;
       }
+
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing) {
         e.preventDefault();
         useEditor.getState().removeSelectedLayers();
+        return;
       }
-      if (e.key === 'Escape' && !typing) {
+
+      if (e.key === 'Escape') {
+        // Always: return to select tool and clear selection
         useEditor.getState().setTool('select');
+        useEditor.getState().clearSelection();
+        return;
       }
+
       if (!typing && !mod) {
-        if (e.key.toLowerCase() === 'v') useEditor.getState().setTool('select');
-        if (e.key.toLowerCase() === 't') useEditor.getState().setTool('text');
-        if (e.key.toLowerCase() === 'r') useEditor.getState().setTool('rect');
-        if (e.key.toLowerCase() === 'e') useEditor.getState().setTool('ellipse');
+        if (key === 'v') useEditor.getState().setTool('select');
+        if (key === 't') useEditor.getState().setTool('text');
+        if (key === 'r') useEditor.getState().setTool('rect');
+        if (key === 'e') useEditor.getState().setTool('ellipse');
       }
     };
     window.addEventListener('keydown', onKey);
