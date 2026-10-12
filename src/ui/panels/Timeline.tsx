@@ -111,7 +111,6 @@ export default function Timeline() {
           if (!prop) return;
           const kf = prop.keyframes.find(k => k.id === d.kfId);
           if (kf) kf.time = newTime;
-          // Sort during drag so interpolation stays correct as keys cross over
           prop.keyframes.sort((a, b) => a.time - b.time);
         });
       }
@@ -120,7 +119,6 @@ export default function Timeline() {
     const onUp = () => {
       const d = dragRef.current;
       if (d && d.kind === 'keyframe') {
-        // Final sort on release
         updateLayer(d.layerId, l => {
           const prop = getKfArray(l, d.path);
           if (prop) prop.keyframes.sort((a, b) => a.time - b.time);
@@ -138,7 +136,6 @@ export default function Timeline() {
     };
   }, [setTime, updateLayer]);
 
-  // External asset drop (dispatched from AssetsPanel)
   useEffect(() => {
     const onDrop = async (e: Event) => {
       const detail = (e as CustomEvent).detail as {
@@ -228,7 +225,6 @@ export default function Timeline() {
     e.stopPropagation();
     e.preventDefault();
     useEditor.getState().select(layerId);
-    // Click-to-seek: jump playhead to this keyframe's time
     setTime(kfTime);
     setDraggingKfId(kfId);
     dragRef.current = {
@@ -243,6 +239,20 @@ export default function Timeline() {
 
   const onLayerRowClick = (e: React.MouseEvent, id: string) => {
     selectWithModifiers(id, e.shiftKey, e.ctrlKey || e.metaKey);
+  };
+
+  /**
+   * Click on any empty area of the timeline (background, spacers, gaps
+   * between clips) → deselect. Clicks on rows, cells, clips, markers,
+   * playhead, or the ruler are ignored.
+   */
+  const onTimelineEmptyClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const isInteractive = target.closest(
+      '.tl-layer-cell, .clip, .kf-marker, .tl-playhead-handle, .tl-ruler, .tl-prop-cell, .tl-prop-track'
+    );
+    if (isInteractive) return;
+    useEditor.getState().select(null);
   };
 
   const navKeyframe = (layerId: string, path: KfPath, direction: -1 | 1) => {
@@ -279,7 +289,7 @@ export default function Timeline() {
       </div>
 
       <div className="timeline-body">
-        <div className="tl-scroll" ref={scrollRef}>
+        <div className="tl-scroll" ref={scrollRef} onMouseDown={onTimelineEmptyClick}>
           <div className="tl-content" style={{ width: LAYER_COL_W + totalW }}>
 
             <div className="tl-row tl-ruler-row">

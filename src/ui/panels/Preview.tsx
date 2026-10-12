@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useEditor } from '../../state/store';
 import { Renderer } from '../../render/renderer';
+import { GizmoOverlay } from '../../gizmo/overlay';
 import { makeLayer, makeShapeLayer } from '../../core/layer';
 import { audioManager } from '../../core/audio';
 import type { ShapeKind } from '../../core/types';
@@ -13,32 +14,59 @@ interface DrawState {
 
 export default function Preview() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
+  const gizmoRef = useRef<GizmoOverlay | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const drawRef = useRef<DrawState | null>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const { project, time, previewScale, playing, tool, setPlaying, setPreviewScale } = useEditor();
+  const [, forceTick] = useState(0);
+  const { project, time, previewScale, playing, tool, selectedLayerId, setPlaying, setPreviewScale } = useEditor();
 
+  // Init renderer + gizmo
   useEffect(() => {
     if (canvasRef.current && !rendererRef.current) {
       rendererRef.current = new Renderer(canvasRef.current);
     }
+    if (overlayRef.current && !gizmoRef.current) {
+      gizmoRef.current = new GizmoOverlay(overlayRef.current);
+    }
+    return () => {
+      gizmoRef.current?.dispose();
+      gizmoRef.current = null;
+    };
   }, []);
 
+  // Sync canvas buffer sizes and render
   useEffect(() => {
     const canvas = canvasRef.current;
+    const overlay = overlayRef.current;
     const r = rendererRef.current;
-    if (!canvas || !r) return;
+    if (!canvas || !overlay || !r) return;
+
     const w = Math.round(project.width * previewScale);
     const h = Math.round(project.height * previewScale);
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
     }
-    r.render(project, { time, scale: previewScale, playing });
-    audioManager.sync(project, time, playing);
-  }, [project, time, previewScale, playing]);
+    if (overlay.width !== w || overlay.height !== h) {
+      overlay.width = w;
+      overlay.height = h;
+    }
 
+    r.render(project, { time, scale: previewScale, playing });
+    gizmoRef.current?.update(project, time, previewScale);
+    audioManager.sync(project, time, playing);
+  }, [project, time, previewScale, playing, selectedLayerId]);
+
+  // Interaction mode on overlay
+  const overlayInteractive = tool === 'select';
+  useEffect(() => {
+    const o = overlayRef.current;
+    if (o) o.style.pointerEvents = overlayInteractive ? 'auto' : 'none';
+  }, [overlayInteractive]);
+
+  // Playback loop
   useEffect(() => {
     if (!playing) {
       audioManager.sync(useEditor.getState().project, useEditor.getState().time, false);
@@ -59,6 +87,7 @@ export default function Preview() {
     return () => cancelAnimationFrame(raf);
   }, [playing]);
 
+  // Ctrl+wheel zoom
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -78,23 +107,15 @@ export default function Preview() {
     const el = wrapRef.current;
     if (!el) return;
     const pad = 24;
-    const availW = el.clientWidth - pad;
-    const availH = el.clientHeight - pad;
-    const s = Math.min(availW / project.width, availH / project.height);
+    const s = Math.min(
+      (el.clientWidth - pad) / project.width,
+      (el.clientHeight - pad) / project.height
+    );
     useEditor.getState().setPreviewScale(Math.max(0.05, Math.round(s * 100) / 100));
   };
 
-  /**
-   * Convert a screen (client) point to comp-space coordinates.
-   *
-   * Three coordinate spaces are involved:
-   *   1. Client pixels (what mousemove gives us)
-   *   2. Canvas buffer pixels (canvas.width/height)
-   *   3. Composition pixels (project.width/height)
-   *
-   * CSS may scale the canvas down to fit the panel, so client→buffer is not
-   * 1:1. We compute the true ratio from the DOM rect.
-   */
+  // Shape/text placement (only when a tool is active; the overlay is
+  // pointer-events:none in that case so events land on the preview canvas).
   const clientToComp = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -104,10 +125,9 @@ export default function Preview() {
     const bufPerCssY = canvas.height / rect.height;
     const bufX = (clientX - rect.left) * bufPerCssX;
     const bufY = (clientY - rect.top) * bufPerCssY;
-    // Buffer pixels → comp pixels (buffer is already at previewScale)
-    const compX = bufX / previewScale;
-    const compY = bufY / previewScale;
-    return { x: compX - project.width / 2, y: compY - project.height / 2 };
+    const compX = bufX / previewScale - project.width / 2;
+    const compY = bufY / previewScale - project.height / 2;
+    return { x: compX, y: compY };
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -120,11 +140,9 @@ export default function Preview() {
       layer.props.position.value = { x, y };
       layer.outPoint = Math.min(project.duration, 5);
       useEditor.getState().addLayer(layer);
-      // Tool stays active for multiple placements
       return;
     }
 
-    // Shape tools: create a tiny layer at the click point, drag to size.
     const layer = makeShapeLayer(tool as ShapeKind);
     layer.props.position.value = { x, y };
     layer.outPoint = Math.min(project.duration, 5);
@@ -134,7 +152,6 @@ export default function Preview() {
     }
     useEditor.getState().addLayer(layer);
     drawRef.current = { startX: x, startY: y, layerId: layer.id };
-    setIsDrawing(true);
 
     const onMove = (ev: MouseEvent) => {
       const d = drawRef.current;
@@ -142,32 +159,22 @@ export default function Preview() {
       const cur = clientToComp(ev.clientX, ev.clientY);
       const dx = cur.x - d.startX;
       const dy = cur.y - d.startY;
-
       useEditor.getState().updateLayer(d.layerId, l => {
         if (!l.shape) return;
         if (l.shape.kind === 'line') {
           const dist = Math.hypot(dx, dy);
           const angle = Math.atan2(dy, dx) * 180 / Math.PI;
           l.shape.w = Math.max(4, dist);
-          l.props.position.value = {
-            x: d.startX + dx / 2,
-            y: d.startY + dy / 2,
-          };
-          if (l.props.rotation.keyframes.length === 0) {
-            l.props.rotation.value = angle;
-          }
+          l.props.position.value = { x: d.startX + dx / 2, y: d.startY + dy / 2 };
+          if (l.props.rotation.keyframes.length === 0) l.props.rotation.value = angle;
         } else {
-          // Shapes are anchored at the drag midpoint (renderer draws centered)
           const w = Math.max(4, Math.abs(dx));
           const h = Math.max(4, Math.abs(dy));
           l.shape.w = w;
           l.shape.h = l.shape.kind === 'ellipse' ? h
                     : l.shape.kind === 'polygon' || l.shape.kind === 'star' ? Math.min(w, h)
                     : h;
-          l.props.position.value = {
-            x: d.startX + dx / 2,
-            y: d.startY + dy / 2,
-          };
+          l.props.position.value = { x: d.startX + dx / 2, y: d.startY + dy / 2 };
         }
       });
     };
@@ -177,28 +184,19 @@ export default function Preview() {
       window.removeEventListener('mouseup', onUp);
       const d = drawRef.current;
       drawRef.current = null;
-      setIsDrawing(false);
       if (!d) return;
-
-      // If the user barely dragged, fall back to the kind's default size.
       const cur = useEditor.getState().project.layers.find(l => l.id === d.layerId);
       if (cur && cur.shape && cur.shape.w < 8) {
-        const defW = 240;
-        const defH = 180;
         useEditor.getState().updateLayer(d.layerId, l => {
           if (!l.shape) return;
-          if (l.shape.kind === 'line') {
-            l.shape.w = 300;
-          } else if (l.shape.kind === 'ellipse' || l.shape.kind === 'rect') {
-            l.shape.w = defW;
-            l.shape.h = defH;
+          if (l.shape.kind === 'line') l.shape.w = 300;
+          else if (l.shape.kind === 'ellipse' || l.shape.kind === 'rect') {
+            l.shape.w = 240; l.shape.h = 180;
           } else {
-            l.shape.w = defW;
-            l.shape.h = defW;
+            l.shape.w = 240; l.shape.h = 240;
           }
         });
       }
-      // No auto-deselect — the tool stays armed for successive shapes.
     };
 
     window.addEventListener('mousemove', onMove);
@@ -235,16 +233,17 @@ export default function Preview() {
         </select>
       </div>
       <div className={'canvas-wrap ' + cursorClass} ref={wrapRef}>
-        <canvas
-          ref={canvasRef}
-          onMouseDown={handleMouseDown}
-          style={{
-            maxWidth: '100%',
-            maxHeight: '100%',
-            width: 'auto',
-            height: 'auto',
-          }}
-        />
+        <div
+          className="canvas-stack"
+          style={{ aspectRatio: project.width + '/' + project.height }}
+        >
+          <canvas
+            ref={canvasRef}
+            className="preview-canvas"
+            onMouseDown={handleMouseDown}
+          />
+          <canvas ref={overlayRef} className="overlay-canvas" />
+        </div>
       </div>
     </section>
   );

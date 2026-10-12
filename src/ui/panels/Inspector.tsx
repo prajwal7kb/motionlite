@@ -134,7 +134,8 @@ export default function Inspector() {
     });
   };
 
-  const num = (key: string, label: string, step = 1) => {
+  /** Numeric property row with keyframe + reset buttons. */
+  const num = (key: string, label: string, step = 1, scrubPerPixel = 0.5, min?: number, max?: number) => {
     const p = layer.props[key];
     if (!p) return null;
     const v = evalProp(p, ctx) as number;
@@ -146,6 +147,9 @@ export default function Inspector() {
         <NumberField
           value={round(v)}
           step={step}
+          min={min}
+          max={max}
+          scrubPerPixel={scrubPerPixel}
           onChange={nv => upd(l => {
             const prop = l.props[key];
             if (prop.keyframes.length) setKeyframe(prop, time, nv, 'linear');
@@ -239,9 +243,9 @@ export default function Inspector() {
           </div>
           <div className="row">
             <label>In / Out</label>
-            <NumberField value={layer.inPoint} step={0.1}
+            <NumberField value={layer.inPoint} step={0.1} scrubPerPixel={0.05}
               onChange={v => upd(l => { l.inPoint = v; })} />
-            <NumberField value={layer.outPoint} step={0.1}
+            <NumberField value={layer.outPoint} step={0.1} scrubPerPixel={0.05}
               onChange={v => upd(l => { l.outPoint = v; })} />
           </div>
           <div className="row">
@@ -255,8 +259,10 @@ export default function Inspector() {
 
         <div className="group">
           <div className="group-title">Transform</div>
-          {num('opacity', 'Opacity', 0.05)}
 
+          {num('opacity', 'Opacity', 0.01, 0.005, 0, 1)}
+
+          {/* Rotation: dual-field turns + degrees */}
           <div className="row">
             <label>Rotation{rotAnimated ? ' ●' : ''}</label>
             <RotationDualFields value={rotVal} onChange={setRotation} />
@@ -277,7 +283,8 @@ export default function Inspector() {
 
           <div className="row">
             <label>Position X{posAnimated ? ' ●' : ''}</label>
-            <NumberField value={round(posX)} onChange={v => updatePos('x', v)} />
+            <NumberField value={round(posX)} scrubPerPixel={0.5}
+              onChange={v => updatePos('x', v)} />
             <button
               className={'kfbtn chain ' + (chainPos ? 'on' : '')}
               title={chainPos ? 'Unlink Position X/Y' : 'Link Position X/Y'}
@@ -300,7 +307,8 @@ export default function Inspector() {
           </div>
           <div className="row">
             <label>Position Y{posAnimated ? ' ●' : ''}</label>
-            <NumberField value={round(posY)} onChange={v => updatePos('y', v)} />
+            <NumberField value={round(posY)} scrubPerPixel={0.5}
+              onChange={v => updatePos('y', v)} />
             <span className="kf-spacer" />
             <button
               className={'kfbtn ' + (posAtKey ? 'on' : posAnimated ? 'animated' : '')}
@@ -318,7 +326,8 @@ export default function Inspector() {
 
           <div className="row">
             <label>Scale X{sclAnimated ? ' ●' : ''}</label>
-            <NumberField value={round(sclX * 100) / 100} step={0.02} onChange={v => updateScale('x', v)} />
+            <NumberField value={round(sclX * 100) / 100} step={0.01} scrubPerPixel={0.005}
+              onChange={v => updateScale('x', v)} />
             <button
               className={'kfbtn chain ' + (chainScale ? 'on' : '')}
               title={chainScale ? 'Unlink Scale X/Y' : 'Link Scale X/Y'}
@@ -341,7 +350,8 @@ export default function Inspector() {
           </div>
           <div className="row">
             <label>Scale Y{sclAnimated ? ' ●' : ''}</label>
-            <NumberField value={round(sclY * 100) / 100} step={0.02} onChange={v => updateScale('y', v)} />
+            <NumberField value={round(sclY * 100) / 100} step={0.01} scrubPerPixel={0.005}
+              onChange={v => updateScale('y', v)} />
             <span className="kf-spacer" />
             <button
               className={'kfbtn ' + (sclAtKey ? 'on' : sclAnimated ? 'animated' : '')}
@@ -389,31 +399,34 @@ export default function Inspector() {
             {(layer.shape.kind === 'polygon' || layer.shape.kind === 'star') && (
               <div className="row">
                 <label>Sides</label>
-                <NumberField value={layer.shape.sides} min={3} max={24}
+                <NumberField value={layer.shape.sides} min={3} max={24} scrubPerPixel={0.05}
                   onChange={v => upd(l => { l.shape!.sides = Math.round(v); })} />
               </div>
             )}
 
             <div className="row">
               <label>Width</label>
-              <NumberField value={layer.shape.w} onChange={v => upd(l => { l.shape!.w = v; })} />
+              <NumberField value={layer.shape.w} scrubPerPixel={0.5}
+                onChange={v => upd(l => { l.shape!.w = v; })} />
             </div>
             {layer.shape.kind !== 'line' && (
               <div className="row">
                 <label>Height</label>
-                <NumberField value={layer.shape.h} onChange={v => upd(l => { l.shape!.h = v; })} />
+                <NumberField value={layer.shape.h} scrubPerPixel={0.5}
+                  onChange={v => upd(l => { l.shape!.h = v; })} />
               </div>
             )}
             {layer.shape.kind === 'rect' && (
               <div className="row">
                 <label>Radius</label>
-                <NumberField value={layer.shape.radius} onChange={v => upd(l => { l.shape!.radius = v; })} />
+                <NumberField value={layer.shape.radius} scrubPerPixel={0.3}
+                  onChange={v => upd(l => { l.shape!.radius = v; })} />
               </div>
             )}
             {layer.shape.kind === 'star' && (
               <div className="row">
                 <label>Inner %</label>
-                <NumberField value={layer.shape.radius} min={5} max={95}
+                <NumberField value={layer.shape.radius} min={5} max={95} scrubPerPixel={0.2}
                   onChange={v => upd(l => { l.shape!.radius = v; })} />
               </div>
             )}
@@ -434,7 +447,7 @@ export default function Inspector() {
                 onChange={e => upd(l => { l.shape!.strokeOn = e.target.checked; })} />
               <input type="color" value={layer.shape.stroke}
                 onChange={e => upd(l => { l.shape!.stroke = e.target.value; })} />
-              <NumberField value={layer.shape.strokeWidth} min={0}
+              <NumberField value={layer.shape.strokeWidth} min={0} scrubPerPixel={0.1}
                 onChange={v => upd(l => { l.shape!.strokeWidth = v; })}
                 style={{ maxWidth: 60 }} />
             </div>
@@ -451,14 +464,14 @@ export default function Inspector() {
             </div>
             <div className="row">
               <label>Size</label>
-              <NumberField value={layer.text.fontSize}
+              <NumberField value={layer.text.fontSize} scrubPerPixel={0.3}
                 onChange={v => upd(l => { l.text!.fontSize = v; })} />
             </div>
             <div className="row">
               <label>Reveal</label>
               <NumberField
                 value={round(evalProp(layer.props.reveal ?? { value: 1, keyframes: [] }, ctx) as number)}
-                min={0} max={1} step={0.01}
+                min={0} max={1} step={0.01} scrubPerPixel={0.005}
                 onChange={v => upd(l => {
                   const p = l.props.reveal ?? (l.props.reveal = { value: 1, keyframes: [] });
                   if (p.keyframes.length) setKeyframe(p, time, v, 'linear');
