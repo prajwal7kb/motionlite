@@ -20,7 +20,16 @@ export default function Preview() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const drawRef = useRef<DrawState | null>(null);
   const [, forceTick] = useState(0);
-  const { project, time, previewScale, playing, tool, selectedLayerId, setPlaying, setPreviewScale } = useEditor();
+
+  const {
+    project, time, previewScale, playing, tool,
+    selectedLayerId, selectedLayerIds,
+    setPlaying, setPreviewScale,
+  } = useEditor();
+
+  // Value-stable key so the effect only reruns when the *set* of
+  // selected ids actually changes, not on every store tick.
+  const selectedIdsKey = selectedLayerIds.join(',');
 
   // Init renderer + gizmo
   useEffect(() => {
@@ -57,7 +66,14 @@ export default function Preview() {
     r.render(project, { time, scale: previewScale, playing });
     gizmoRef.current?.update(project, time, previewScale);
     audioManager.sync(project, time, playing);
-  }, [project, time, previewScale, playing, selectedLayerId]);
+  }, [
+    project,
+    time,
+    previewScale,
+    playing,
+    selectedLayerId,
+    selectedIdsKey,
+  ]);
 
   // Interaction mode on overlay
   const overlayInteractive = tool === 'select';
@@ -114,8 +130,6 @@ export default function Preview() {
     useEditor.getState().setPreviewScale(Math.max(0.05, Math.round(s * 100) / 100));
   };
 
-  // Shape/text placement (only when a tool is active; the overlay is
-  // pointer-events:none in that case so events land on the preview canvas).
   const clientToComp = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
