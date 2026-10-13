@@ -9,10 +9,7 @@ export interface NumberFieldProps {
   style?: React.CSSProperties;
   /**
    * Value change per pixel of horizontal drag.
-   * Defaults are chosen to feel natural per typical field range:
-   * - Small numbers (opacity, scale): very small rate
-   * - Medium (rotation, width): moderate
-   * - Large (position): larger
+   * Defaults are deliberately dampened for micro-precision.
    */
   scrubPerPixel?: number;
 }
@@ -24,20 +21,18 @@ export default function NumberField({
   min,
   max,
   style,
-  scrubPerPixel = 0.5,
+  scrubPerPixel = 0.15,
 }: NumberFieldProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [draft, setDraftState] = React.useState<string | null>(null);
   const [focused, setFocused] = React.useState(false);
 
-  // Drafts in a ref so onBlur can read the latest synchronous value
   const draftRef = React.useRef<string | null>(null);
   const setDraft = (v: string | null) => {
     draftRef.current = v;
     setDraftState(v);
   };
 
-  // Value at focus time — Escape reverts to this
   const focusedValueRef = React.useRef<number>(value);
 
   const scrubRef = React.useRef<{
@@ -128,7 +123,6 @@ export default function NumberField({
           (e.target as HTMLInputElement).blur();
         }
         if (e.key === 'Escape') {
-          // Revert to the value that was present when we focused
           setDraft(null);
           onChange(focusedValueRef.current);
           (e.target as HTMLInputElement).blur();

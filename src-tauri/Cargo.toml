@@ -1,6 +1,6 @@
 [package]
 name = "motionlite"
-version = "1.1.0"
+version = "1.2.0"
 description = "MotionLite - personal 2D motion graphics editor"
 authors = ["you"]
 edition = "2021"

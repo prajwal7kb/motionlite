@@ -1,4 +1,11 @@
-import type { AnimatableProp, Keyframe, Vec2 } from './types';
+import type {
+  AnimatableProp,
+  EasingKind,
+  Keyframe,
+  Layer,
+  PropertyPath,
+  Vec2,
+} from './types';
 import { uid } from './types';
 import { cubicBezier, lerp, lerpColor, lerpVec } from './interpolate';
 
@@ -47,7 +54,12 @@ export function keyframeValue<T>(prop: AnimatableProp<T>, time: number): T {
   return blend(a.value, b.value, t);
 }
 
-export function setKeyframe<T>(prop: AnimatableProp<T>, time: number, value: T, easing: Keyframe['easing'] = 'linear') {
+export function setKeyframe<T>(
+  prop: AnimatableProp<T>,
+  time: number,
+  value: T,
+  easing: Keyframe['easing'] = 'linear'
+) {
   const existing = prop.keyframes.find(k => Math.abs(k.time - time) < 1e-4);
   if (existing) { existing.value = value; existing.easing = easing; return; }
   prop.keyframes.push({ id: uid(), time, value, easing });
@@ -56,4 +68,55 @@ export function setKeyframe<T>(prop: AnimatableProp<T>, time: number, value: T, 
 
 export function removeKeyframe(prop: AnimatableProp, id: string) {
   prop.keyframes = prop.keyframes.filter(k => k.id !== id);
+}
+
+/** Find a keyframe at an exact time (within tolerance). */
+export function getKeyframeAt<T>(
+  prop: AnimatableProp<T>,
+  time: number,
+  tolerance = 1e-4
+): Keyframe<T> | null {
+  return prop.keyframes.find(k => Math.abs(k.time - time) < tolerance) ?? null;
+}
+
+/** Change a keyframe's easing, optionally setting bezier control points. */
+export function setKeyframeEasing<T>(
+  prop: AnimatableProp<T>,
+  kfId: string,
+  easing: EasingKind,
+  bezier?: [number, number, number, number]
+) {
+  const k = prop.keyframes.find(x => x.id === kfId);
+  if (!k) return;
+  k.easing = easing;
+  if (easing === 'bezier') {
+    k.bezier = bezier ?? k.bezier ?? [0.25, 0.1, 0.25, 1];
+  } else {
+    k.bezier = undefined;
+  }
+}
+
+/** Resolve a PropertyPath to the actual AnimatableProp on a layer. */
+export function getPropByPath(
+  layer: Layer,
+  path: PropertyPath
+): AnimatableProp | undefined {
+  if (path.kind === 'prop') return layer.props[path.propKey];
+  const fx = layer.effects.find(e => e.id === path.effectId);
+  return fx?.params[path.paramKey];
+}
+
+/** Human-readable label for a property path. */
+export function pathLabel(path: PropertyPath): string {
+  if (path.kind === 'prop') return path.propKey;
+  return 'fx · ' + path.paramKey;
+}
+
+/** Deep-clone a keyframe's payload for clipboard use. */
+export function cloneKeyframePayload<T>(k: Keyframe<T>) {
+  return {
+    value: JSON.parse(JSON.stringify(k.value)),
+    easing: k.easing,
+    bezier: k.bezier ? ([...k.bezier] as [number, number, number, number]) : undefined,
+  };
 }

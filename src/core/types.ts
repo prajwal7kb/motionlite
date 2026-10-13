@@ -3,6 +3,8 @@ export type Hex = string;
 
 export type EasingKind = 'linear' | 'hold' | 'bezier';
 
+export type TimeDisplayMode = 'timecode' | 'frames' | 'seconds';
+
 export interface Keyframe<T = any> {
   id: string;
   time: number;
@@ -104,9 +106,27 @@ export interface Project {
   presets: Preset[];
 }
 
+/** Locates a property inside a layer — used for keyframe references. */
+export type PropertyPath =
+  | { kind: 'prop'; propKey: string }
+  | { kind: 'fx'; effectId: string; paramKey: string };
+
+/** Reference to a single keyframe in the project. */
+export interface KeyframeRef {
+  layerId: string;
+  path: PropertyPath;
+  kfId: string;
+}
+
+/** Copied keyframe payload (time excluded — paste always lands at playhead). */
+export interface KeyframeClipboard {
+  value: any;
+  easing: EasingKind;
+  bezier?: [number, number, number, number];
+}
+
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
-/** Sensible defaults for reset buttons. */
 export const PROP_DEFAULTS: Record<string, any> = {
   position: { x: 0, y: 0 },
   scale: { x: 1, y: 1 },

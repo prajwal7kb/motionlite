@@ -20,14 +20,12 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
-body, .app, .panel, .topbar, .context-bar, .timeline-body, .insp-body, .preset-list, .asset-grid {
+body, .app, .panel, .topbar, .context-bar, .timeline-body, .insp-body,
+.preset-list, .asset-grid, .graph-editor-strip {
   user-select: none;
   -webkit-user-select: none;
 }
-input, textarea, select {
-  user-select: text;
-  -webkit-user-select: text;
-}
+input, textarea, select { user-select: text; -webkit-user-select: text; }
 
 button, input, select, textarea { font: inherit; color: inherit; }
 input, select, textarea {
@@ -37,22 +35,15 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
 input[type=color] {
-  padding: 0;
-  height: 22px;
-  width: 32px;
-  min-width: 32px;
-  flex: 0 0 32px;
+  padding: 0; height: 22px; width: 32px; min-width: 32px; flex: 0 0 32px;
 }
-
 input[type=checkbox] {
   appearance: none; -webkit-appearance: none;
   width: 14px; height: 14px; padding: 0;
-  min-width: 14px;
-  flex: 0 0 14px;
+  min-width: 14px; flex: 0 0 14px;
   border: 1px solid var(--line); border-radius: 3px;
   background: var(--bg-2); cursor: pointer;
-  position: relative;
-  margin: 0;
+  position: relative; margin: 0;
 }
 input[type=checkbox]:hover { border-color: var(--fg-1); }
 input[type=checkbox]:checked { background: var(--accent); border-color: var(--accent); }
@@ -84,18 +75,23 @@ input[type=checkbox]:checked::after {
 }
 .btn:hover { background: var(--bg-3); border-color: #3a3a48; }
 .btn.sm { padding: 2px 8px; font-size: 11px; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn:disabled:hover { background: var(--bg-2); border-color: var(--line); }
+
+.autok-btn.on {
+  background: linear-gradient(180deg, #b8494a, #8c3233);
+  border-color: #d75d5e;
+  color: #fff;
+  font-weight: 600;
+}
 
 .tool-btn {
-  width: 26px; height: 26px;
-  padding: 0;
+  width: 26px; height: 26px; padding: 0;
   display: grid; place-items: center;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 5px;
+  border: 1px solid transparent; border-radius: 5px;
   cursor: pointer;
-  color: var(--fg-1);
-  font-size: 12px;
-  line-height: 1;
+  color: var(--fg-1); font-size: 12px; line-height: 1;
 }
 .tool-btn:hover { background: var(--bg-2); color: var(--fg-0); }
 .tool-btn.active {
@@ -105,24 +101,17 @@ input[type=checkbox]:checked::after {
 }
 
 .context-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 34px;
-  padding: 0 12px;
+  display: flex; align-items: center; gap: 10px;
+  height: 34px; padding: 0 12px;
   background: var(--bg-2);
   border-bottom: 1px solid var(--line);
   flex: 0 0 auto;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow-x: auto; overflow-y: hidden;
 }
 .context-bar::-webkit-scrollbar { height: 0; }
 .ctx-label {
-  font-size: 9px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--accent);
-  font-weight: 600;
+  font-size: 9px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 600;
 }
 .ctx-item { display: flex; align-items: center; gap: 5px; }
 .ctx-item label { font-size: 10px; color: var(--fg-1); white-space: nowrap; }
@@ -152,19 +141,24 @@ input[type=checkbox]:checked::after {
   padding: 0 10px; border-bottom: 1px solid var(--line);
   font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--fg-1);
 }
+.insp-autok {
+  margin-left: 6px;
+  color: #d75d5e;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
 .empty { color: var(--fg-1); padding: 16px; text-align: center; }
 
 .search { margin: 6px; }
 .asset-grid {
   flex: 1; overflow: auto; padding: 6px;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px;
-  align-content: start;
-  position: relative;
+  align-content: start; position: relative;
 }
 .asset {
   background: var(--bg-2); border-radius: 6px; overflow: hidden;
-  cursor: grab;
-  position: relative;
+  cursor: grab; position: relative;
 }
 .asset:active { cursor: grabbing; }
 .asset .thumb {
@@ -194,8 +188,7 @@ input[type=checkbox]:checked::after {
 
 .asset-drag-ghost {
   position: fixed;
-  width: 18px; height: 18px;
-  border-radius: 50%;
+  width: 18px; height: 18px; border-radius: 50%;
   background: var(--accent);
   color: #fff; font-size: 10px;
   line-height: 18px; text-align: center;
@@ -205,37 +198,24 @@ input[type=checkbox]:checked::after {
   z-index: 9999;
 }
 
-/* ── Canvas stack (preview + gizmo overlay) ─────────────── */
 .canvas-wrap {
   flex: 1; display: grid; place-items: center; padding: 12px; min-height: 0; overflow: hidden;
   background: repeating-conic-gradient(#17171d 0% 25%, #131319 0% 50%) 50% / 20px 20px;
 }
 .canvas-wrap.cur-place { cursor: crosshair; }
 .canvas-wrap.cur-select { cursor: default; }
-
-.canvas-stack {
-  position: relative;
-  display: block;
-  max-width: 100%;
-  max-height: 100%;
-}
+.canvas-stack { position: relative; display: block; max-width: 100%; max-height: 100%; }
 .preview-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
+  display: block; width: 100%; height: 100%;
   box-shadow: 0 8px 40px rgba(0,0,0,.6);
   border-radius: 4px;
 }
 .overlay-canvas {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
   border-radius: 4px;
-  /* Default is non-interactive; Preview toggles to 'auto' in select mode */
   pointer-events: none;
 }
-
 .zoom-pct {
   font-family: ui-monospace, Consolas, monospace;
   color: var(--fg-1); font-size: 10px; min-width: 34px; text-align: right;
@@ -268,10 +248,9 @@ textarea { resize: vertical; min-height: 48px; font-family: ui-monospace, Consol
 textarea.expr { width: 100%; min-height: 60px; }
 .err { color: var(--bad); font-size: 10px; margin-top: 4px; white-space: pre-wrap; }
 
-.rot-dual {
-  display: inline-flex; align-items: center; gap: 3px;
-  flex: 1; min-width: 0;
-}
+
+
+.rot-dual { display: inline-flex; align-items: center; gap: 3px; flex: 1; min-width: 0; }
 .rot-turns, .rot-degs {
   min-width: 0; text-align: right;
   font-family: ui-monospace, Consolas, monospace; font-size: 11px;
@@ -407,23 +386,63 @@ textarea.expr { width: 100%; min-height: 60px; }
 .clip-handle-l { left: 0; }
 .clip-handle-r { right: 0; }
 
+/* ── Keyframe markers ──────────────────────────────────────
+   Shape is determined by easing type:
+     linear → diamond (rotate 45°)
+     hold   → square
+     bezier → circle
+   Uses CSS custom properties so the base transform is composed
+   without losing the rotation on hover/drag. */
 .kf-marker {
+  --kf-base: translate(-50%, -50%);
+  --kf-hover: translate(-50%, -50%) scale(1.18);
+  --kf-drag: translate(-50%, -50%) scale(1.3);
   position: absolute; top: 50%;
   width: 11px; height: 11px;
-  transform: translate(-50%, -50%) rotate(45deg);
+  transform: var(--kf-base);
   background: var(--accent-2);
   border: 1px solid #0b0b0f;
   border-radius: 2px;
   cursor: ew-resize;
   z-index: 3;
-  transition: background .08s, transform .08s;
+  transition: background .08s, transform .08s, box-shadow .12s;
 }
-.kf-marker:hover { background: var(--accent); transform: translate(-50%, -50%) rotate(45deg) scale(1.15); }
-.kf-combined { background: #b088ff; }
+.kf-linear {
+  --kf-base: translate(-50%, -50%) rotate(45deg);
+  --kf-hover: translate(-50%, -50%) rotate(45deg) scale(1.18);
+  --kf-drag: translate(-50%, -50%) rotate(45deg) scale(1.3);
+  border-radius: 2px;
+}
+.kf-hold {
+  --kf-base: translate(-50%, -50%);
+  --kf-hover: translate(-50%, -50%) scale(1.18);
+  --kf-drag: translate(-50%, -50%) scale(1.3);
+  border-radius: 1px;
+}
+.kf-bezier {
+  --kf-base: translate(-50%, -50%);
+  --kf-hover: translate(-50%, -50%) scale(1.18);
+  --kf-drag: translate(-50%, -50%) scale(1.3);
+  border-radius: 50%;
+}
+.kf-marker:hover {
+  background: var(--accent);
+  transform: var(--kf-hover);
+}
+/* Combined keyframes inherit the easing-driven shape — only the color
+   differs from single-channel keyframes. */
+.kf-combined {
+  background: #b088ff;
+}
 .kf-dragging {
   background: var(--accent);
-  transform: translate(-50%, -50%) rotate(45deg) scale(1.25);
+  transform: var(--kf-drag);
   box-shadow: 0 0 8px var(--accent);
+}
+.kf-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 10px var(--accent);
 }
 
 .tl-playhead-line {
@@ -456,6 +475,79 @@ textarea.expr { width: 100%; min-height: 60px; }
   font-family: ui-monospace, Consolas, monospace;
   color: var(--fg-1); font-size: 11px; margin: 0 6px;
 }
+
+/* ── Graph editor strip ──────────────────────────────────── */
+.graph-editor-strip {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+.graph-editor-strip svg.graph-editor {
+  display: block;
+  flex: 0 0 auto;
+}
+.graph-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.graph-title {
+  font-size: 11px;
+  color: var(--fg-0);
+  font-weight: 500;
+}
+.graph-sub {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 10px;
+  color: var(--fg-1);
+}
+.graph-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+.graph-actions .btn.sm {
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+/* ── Keyframe context menu ───────────────────────────────── */
+.kf-menu {
+  position: fixed;
+  z-index: 500;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.55);
+  padding: 4px 0;
+  min-width: 200px;
+  font-size: 11px;
+  color: var(--fg-0);
+}
+.kf-menu-section {
+  font-size: 9px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--fg-1); padding: 6px 12px 3px;
+}
+.kf-menu-item {
+  padding: 5px 12px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+}
+.kf-menu-item:hover { background: var(--bg-2); }
+.kf-menu-item.disabled { opacity: 0.4; cursor: default; }
+.kf-menu-item.disabled:hover { background: transparent; }
+.kf-menu-check {
+  width: 12px; color: var(--accent);
+  font-size: 10px; flex: 0 0 12px;
+}
+.kf-menu-divider { height: 1px; background: var(--line); margin: 4px 0; }
 
 .effect-row {
   background: var(--bg-2);
@@ -583,3 +675,255 @@ textarea.expr { width: 100%; min-height: 60px; }
   border-radius: 4px; font-size: 11px;
 }
 .asset-menu-item:hover { background: var(--bg-2); }
+
+/* ── Speed Graph Panel ──────────────────────────────────── */
+.speed-graph-panel {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  min-height: 200px;
+  max-height: 240px;
+}
+
+.sgp-graph {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sgp-empty-graph {
+  width: 280px;
+  height: 180px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background: var(--bg-4);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--fg-1);
+  font-size: 11px;
+  gap: 4px;
+}
+.sgp-hint {
+  color: var(--fg-1);
+  opacity: 0.6;
+  font-size: 10px;
+}
+
+.sgp-controls {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.sgp-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.sgp-title {
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+}
+.sgp-badge {
+  font-size: 10px;
+  background: #2a2354;
+  color: var(--accent-2);
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+
+.sgp-info {
+  font-size: 11px;
+  color: var(--fg-0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sgp-info-sub {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 10px;
+  color: var(--fg-1);
+}
+
+.sgp-section {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--fg-1);
+  margin-top: 6px;
+  margin-bottom: 2px;
+}
+
+.sgp-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.sgp-preset-row .btn.sm {
+  padding: 2px 8px;
+  font-size: 10px;
+}
+.btn-active {
+  background: #2a2354;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sgp-num-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sgp-num-row label {
+  font-size: 10px;
+  color: var(--fg-1);
+  flex: 0 0 auto;
+}
+.sgp-num-row input {
+  flex: 0 0 60px;
+  min-width: 0;
+  width: 60px;
+}
+
+.sgp-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* ── Graph toggle button (timeline panel head + topbar) ─── */
+.graph-toggle {
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--fg-1);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  gap: 0;
+}
+.graph-toggle:hover {
+  background: var(--bg-2);
+  color: var(--fg-0);
+}
+.graph-toggle.on {
+  color: var(--accent);
+  background: #2a2354;
+  border-color: var(--accent);
+}
+.topbar .graph-toggle {
+  width: auto;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+}
+
+/* ── Marquee selection rect ─────────────────────────────── */
+.marquee-rect {
+  position: fixed;
+  border: 1px dashed var(--accent);
+  background: rgba(124, 92, 255, 0.1);
+  pointer-events: none;
+  z-index: 300;
+}
+
+/* ── Graph toggle button ─────────────────────────────────── */
+.graph-toggle {
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--fg-1);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  gap: 0;
+}
+.graph-toggle:hover {
+  background: var(--bg-2);
+  color: var(--fg-0);
+}
+.graph-toggle.on {
+  color: var(--accent);
+  background: #2a2354;
+  border-color: var(--accent);
+}
+.topbar .graph-toggle {
+  width: auto;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+}
+
+/* ── Graph view (in-place timeline swap) ─────────────────── */
+.grid.graph-mode {
+  grid-template-rows: 1fr 400px;
+}
+
+.tl-corner-graph {
+  flex: 0 0 auto;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--bg-1);
+  border-right: 1px solid var(--line);
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 6px 8px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 9px;
+  color: var(--fg-1);
+}
+
+.graph-corner-label {
+  color: var(--accent);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.tl-graph-row {
+  display: flex;
+  flex-direction: row;
+  position: relative;
+}
+
+.graph-wrap {
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.graph-canvas {
+  display: block;
+  background: var(--bg-4);
+}
